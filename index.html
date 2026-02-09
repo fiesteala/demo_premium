@@ -19,15 +19,27 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuración de Firebase
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
+        // 1. LÓGICA DE CONFIGURACIÓN DINÁMICA
+        const storedConfig = localStorage.getItem('custom_firebase_config');
+        const envConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const demoConfig = { apiKey: "demo", authDomain: "demo", projectId: "demo" };
+        
+        const firebaseConfig = storedConfig ? JSON.parse(storedConfig) : (envConfig || demoConfig);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        let initError = null;
 
-        // Variables globales
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Error inicializando Firebase:", e);
+            initError = e.message;
+        }
+
+        // Exportar a global
         window.db = db;
         window.collection = collection;
         window.addDoc = addDoc;
@@ -43,39 +55,78 @@
 
         // Función de conexión robusta
         const initAuth = async () => {
+            if (initError) {
+                updateStatus("Error de Configuración", "red");
+                return;
+            }
+
             console.log("Iniciando conexión...");
+            updateStatus("Conectando...", "yellow");
+            
             try {
+                if (firebaseConfig.apiKey === "demo") {
+                    updateStatus("Modo Demo (Sin Nube)", "gray");
+                    return;
+                }
+
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Error de autenticación inicial:", error);
-                // Reintentar si falla
-                setTimeout(() => signInAnonymously(auth).catch(e => console.error("Fallo reintento", e)), 2000);
+                console.error("Error Auth:", error);
+                updateStatus("Error de Conexión", "red");
+                setTimeout(() => signInAnonymously(auth).catch(() => {}), 3000);
             }
         };
 
         // Iniciar
-        initAuth();
-        
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("Conectado a la nube. ID:", user.uid);
-                window.isAuthReady = true;
-                updateStatus("Conectado", "green");
-            } else {
-                window.isAuthReady = false;
-                updateStatus("Desconectado", "red");
-            }
-        });
+        if(auth) {
+            initAuth();
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    console.log("Conectado a la nube. ID:", user.uid);
+                    window.isAuthReady = true;
+                    updateStatus("Conectado a la Nube", "green");
+                } else {
+                    window.isAuthReady = false;
+                    const currentStatus = document.getElementById('connectionStatusText')?.innerText;
+                    if (currentStatus !== "Error de Conexión") {
+                        updateStatus("Desconectado", "red");
+                    }
+                }
+            });
+        }
 
         function updateStatus(text, color) {
             const el = document.getElementById('connectionStatusText');
             if(el) {
                 el.innerText = text;
-                el.className = `text-${color}-500 text-xs font-bold`;
+                let colorClass = 'text-gray-400'; // Default gray for modal
+                if(color === 'green') colorClass = 'text-green-600 font-bold';
+                if(color === 'red') colorClass = 'text-red-500 font-bold';
+                if(color === 'yellow') colorClass = 'text-yellow-600';
+                el.className = `text-xs ${colorClass} transition-colors duration-300 mt-2 block`;
+            }
+        }
+        
+        window.saveCustomConfig = (jsonString) => {
+            try {
+                const conf = JSON.parse(jsonString);
+                if(!conf.apiKey) throw new Error("Configuración inválida");
+                localStorage.setItem('custom_firebase_config', jsonString);
+                alert("Configuración guardada. Recargando...");
+                window.location.reload();
+            } catch(e) {
+                alert("Error: JSON inválido. Copia solo lo que está entre llaves { }.");
+            }
+        }
+        
+        window.clearCustomConfig = () => {
+            if(confirm("¿Restaurar configuración original?")) {
+                localStorage.removeItem('custom_firebase_config');
+                window.location.reload();
             }
         }
     </script>
@@ -264,7 +315,7 @@
                 <div class="mt-12 text-sm text-gray-400 flex flex-col items-center gap-2">
                     <p>Sofía & Alejandro | 2026</p>
                     <button onclick="openAdminLogin()" class="text-gray-300 hover:text-gray-500 text-xs mt-4 underline">Admin</button>
-                    <span id="connectionStatusText" class="text-xs text-gray-300">Conectando...</span>
+                    <!-- Status hidden from guests -->
                 </div>
             </div>
         </footer>
@@ -309,16 +360,37 @@
 
     <!-- LOGIN MODAL -->
     <div id="loginModal" class="fixed inset-0 z-[60] hidden bg-black/90 flex items-center justify-center px-4">
-        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full text-center">
-            <h3 class="text-2xl font-bold mb-4 text-gray-800">Acceso Admin</h3>
-            <p class="text-sm text-gray-500 mb-6">Contraseña (1234)</p>
-            <input type="password" id="adminPassword" placeholder="Contraseña" class="w-full border p-3 rounded mb-4 text-center text-lg">
-            <div class="flex gap-2">
-                <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-3 rounded">Cancelar</button>
-                <button onclick="checkLogin()" class="flex-1 bg-yellow-600 text-white py-3 rounded font-bold">Entrar</button>
+        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full text-center relative overflow-hidden">
+            <!-- Icono de Configuración -->
+            <button onclick="toggleConfig()" class="absolute top-2 right-2 p-2 bg-gray-100 rounded-full text-gray-500 hover:text-yellow-600 transition shadow-sm" title="Configurar Base de Datos">
+                <i class="fas fa-cog text-xl"></i>
+            </button>
+
+            <div id="loginFormContent">
+                <h3 class="text-2xl font-bold mb-4 text-gray-800">Acceso Admin</h3>
+                <p class="text-sm text-gray-500 mb-6">Contraseña (1234)</p>
+                <input type="password" id="adminPassword" placeholder="Contraseña" class="w-full border p-3 rounded mb-4 text-center text-lg">
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-3 rounded">Cancelar</button>
+                    <button onclick="checkLogin()" class="flex-1 bg-yellow-600 text-white py-3 rounded font-bold">Entrar</button>
+                </div>
+                <p id="loginStatus" class="text-xs text-red-500 mt-2 hidden">Error</p>
+                <p id="connectionStatus" class="text-xs text-blue-500 mt-2 hidden">Verificando red...</p>
+                <!-- Status now hidden inside here -->
+                <p id="connectionStatusText" class="text-xs text-gray-400 mt-2">Conectando...</p>
             </div>
-            <p id="loginStatus" class="text-xs text-red-500 mt-2 hidden">Error</p>
-            <p id="connectionStatus" class="text-xs text-blue-500 mt-2 hidden">Verificando red...</p>
+
+            <!-- Panel de Configuración -->
+            <div id="configPanelContent" class="hidden text-left mt-4 pt-4 border-t">
+                <h4 class="text-sm font-bold text-gray-700 mb-2">Configuración Firebase</h4>
+                <p class="text-xs text-gray-500 mb-2">Pega aquí el código JSON de Firebase para conectar tu base de datos:</p>
+                <textarea id="customConfigInput" rows="4" class="w-full border p-2 text-xs font-mono bg-gray-50 rounded mb-2" placeholder='{"apiKey": "...", "authDomain": "..."}'></textarea>
+                <div class="flex gap-2">
+                    <button onclick="saveCustomConfig(document.getElementById('customConfigInput').value)" class="flex-1 bg-blue-600 text-white py-2 rounded text-xs font-bold">Guardar</button>
+                    <button onclick="clearCustomConfig()" class="flex-1 bg-red-100 text-red-600 py-2 rounded text-xs">Borrar</button>
+                </div>
+                <button onclick="toggleConfig()" class="text-xs text-gray-400 mt-2 underline w-full text-center">Volver</button>
+            </div>
         </div>
     </div>
 
@@ -349,6 +421,20 @@
         function openAdminLogin() {
             document.getElementById('loginModal').classList.remove('hidden');
             document.getElementById('loginStatus').classList.add('hidden');
+            document.getElementById('loginFormContent').classList.remove('hidden');
+            document.getElementById('configPanelContent').classList.add('hidden');
+        }
+
+        function toggleConfig() {
+            const login = document.getElementById('loginFormContent');
+            const config = document.getElementById('configPanelContent');
+            if (config.classList.contains('hidden')) {
+                login.classList.add('hidden');
+                config.classList.remove('hidden');
+            } else {
+                config.classList.add('hidden');
+                login.classList.remove('hidden');
+            }
         }
 
         async function checkLogin() {
@@ -359,29 +445,28 @@
             errorEl.classList.add('hidden');
 
             if (pass === adminPin) {
-                // Intentar verificar usuario actual directamente si la bandera isAuthReady falló
-                if (!window.isAuthReady && window.auth.currentUser) {
+                // Verificar si Auth está listo
+                if (!window.isAuthReady && window.auth && window.auth.currentUser) {
                     window.isAuthReady = true;
                 }
 
                 if (!window.isAuthReady) {
-                    statusEl.textContent = "Estableciendo conexión segura...";
+                    statusEl.textContent = "Reconectando con la nube...";
                     statusEl.classList.remove('hidden');
                     
                     try {
-                        // Intentar forzar autenticación
-                        await window.signInAnonymously(window.auth);
-                        // Esperar un momento para asegurar que el objeto user esté listo
-                        setTimeout(() => {
-                            statusEl.classList.add('hidden');
-                            document.getElementById('loginModal').classList.add('hidden');
-                            document.getElementById('adminPanel').classList.remove('translate-y-full');
-                            loadGuests();
-                        }, 1000);
-                        return;
+                        if(window.signInAnonymously && window.auth) {
+                            await window.signInAnonymously(window.auth);
+                            setTimeout(() => {
+                                statusEl.classList.add('hidden');
+                                document.getElementById('loginModal').classList.add('hidden');
+                                document.getElementById('adminPanel').classList.remove('translate-y-full');
+                                loadGuests();
+                            }, 1000);
+                            return;
+                        }
                     } catch (e) {
-                        console.error("Auth Error:", e);
-                        statusEl.innerHTML = "Error de red. <br>1. Verifica tu internet.<br>2. Recarga la página.";
+                        statusEl.innerHTML = "Sin conexión. <br>Intenta configurar tu propia DB en el engrane ⚙️.";
                         return;
                     }
                 }
@@ -402,7 +487,7 @@
 
         // DATABASE LOAD
         async function loadGuests() {
-            if(!window.auth.currentUser) return;
+            if(!window.auth || !window.auth.currentUser) return;
 
             const q = window.query(
                 window.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'guests'), 
@@ -442,14 +527,14 @@
             e.preventDefault();
             const name = document.getElementById('inputName').value;
             const tickets = document.getElementById('inputTickets').value;
-            if(!window.auth.currentUser) return alert("Sin conexión");
+            if(!window.auth || !window.auth.currentUser) return alert("Sin conexión. Revisa el engrane ⚙️.");
 
             try {
                 await window.addDoc(window.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'guests'), {
                     name: name, tickets: parseInt(tickets), createdAt: new Date().toISOString()
                 });
                 e.target.reset();
-            } catch (err) { alert("Error al guardar"); }
+            } catch (err) { alert("Error al guardar: " + err.message); }
         });
 
         // DELETE GUEST
