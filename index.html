@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boda de Sofía y Alejandro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuración de Firebase
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Variables globales para la app
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.appId = appId;
+        window.auth = auth;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.signInAnonymously = signInAnonymously; // Exponer para reintentos
+        window.isAuthReady = false;
+
+        // Autenticación Robusta (Soporte Multi-dispositivo)
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error de autenticación inicial:", error);
+            }
+        };
+
+        // Iniciar Auth y escuchar estado
+        initAuth();
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Base de datos conectada. Usuario ID:", user.uid);
+                window.isAuthReady = true;
+                updateConnectionStatus(true);
+            } else {
+                updateConnectionStatus(false);
+                window.isAuthReady = false;
+            }
+        });
+
+        function updateConnectionStatus(connected) {
+            const statusIndicator = document.getElementById('dbStatusIndicator');
+            if(statusIndicator) {
+                if(connected) {
+                    statusIndicator.innerHTML = '<span class="flex items-center gap-2 text-green-600 text-sm font-bold"><span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span> Nube Conectada</span>';
+                } else {
+                    statusIndicator.innerHTML = '<span class="text-red-500 text-sm">Desconectado</span>';
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Configuración personalizada */
+        :root {
+            --gold: #D4AF37;
+            --cream: #F9F7F2;
+            --dark: #2C2C2C;
+            --sage: #8A9A5B;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--cream);
+            color: var(--dark);
+            overflow-x: hidden;
+        }
+
+        h1, h2, .script-font {
+            font-family: 'Great Vibes', cursive;
+        }
+
+        .music-pulse {
+            animation: pulse-gold 2s infinite;
+        }
+
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        .parallax {
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #lightbox {
+            backdrop-filter: blur(10px);
+        }
+
+        /* Estilos Ticket Digital */
+        .ticket-bg {
+            background: radial-gradient(circle at top left, transparent 20px, white 21px), 
+                        radial-gradient(circle at top right, transparent 20px, white 21px), 
+                        radial-gradient(circle at bottom left, transparent 20px, white 21px), 
+                        radial-gradient(circle at bottom right, transparent 20px, white 21px);
+            background-size: 51% 51%;
+            background-repeat: no-repeat;
+            background-color: white; /* Fallback */
+            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));
+        }
+
+        /* Admin Panel Overlay */
+        #adminPanel {
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased relative">
+
+    <!-- Audio Element -->
+    <audio id="weddingMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Botón Flotante Música -->
+    <div class="fixed top-5 right-5 z-40">
+        <button id="musicBtn" onclick="toggleMusic()" class="bg-white text-yellow-600 w-12 h-12 rounded-full shadow-lg flex items-center justify-center focus:outline-none transition-all duration-300 music-pulse border border-yellow-200">
+            <i class="fas fa-music" id="musicIcon"></i>
+        </button>
+    </div>
+
+    <!-- VISTA DE INVITADO (Contenido Principal) -->
+    <main id="guestView">
+        
+        <!-- HERO SECTION -->
+        <header class="relative h-screen flex flex-col justify-center items-center text-center parallax" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');">
+            <div class="animate__animated animate__fadeInDown">
+                <p class="text-white text-lg tracking-[0.3em] uppercase mb-4">¡Nos Casamos!</p>
+                <h1 class="text-6xl md:text-8xl text-white mb-2" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Sofía & Alejandro</h1>
+            </div>
+            
+            <div class="mt-8 animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="inline-block border-t border-b border-white py-2 px-6">
+                    <p class="text-2xl text-white font-light">15 . OCT . 2026</p>
+                </div>
+            </div>
+
+            <div class="absolute bottom-10 animate__animated animate__bounce animate__infinite">
+                <i class="fas fa-chevron-down text-white text-2xl"></i>
+            </div>
+        </header>
+
+        <!-- SECCIÓN DE PASE PERSONALIZADO (Solo visible si hay parámetros) -->
+        <section id="personalTicket" class="hidden py-12 bg-yellow-50">
+            <div class="container mx-auto px-4">
+                <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-xl border-2 border-yellow-500 relative overflow-hidden animate__animated animate__flipInX">
+                    <!-- Decoración dorada -->
+                    <div class="absolute top-0 left-0 w-full h-2 bg-yellow-500"></div>
+                    <div class="absolute bottom-0 left-0 w-full h-2 bg-yellow-500"></div>
+                    
+                    <div class="text-center">
+                        <span class="text-xs uppercase tracking-widest text-gray-500 mb-2 block">Pase de Entrada Personal</span>
+                        <h2 class="text-3xl script-font text-yellow-600 mb-4">Invitación Especial</h2>
+                        <div class="my-6 border-t border-b border-gray-100 py-4">
+                            <p class="text-gray-600 italic mb-2">Para:</p>
+                            <h3 id="guestNameDisplay" class="text-2xl font-bold text-gray-800 uppercase">Familia Pérez</h3>
+                        </div>
+                        <div class="flex justify-center items-center gap-4">
+                            <div class="text-center">
+                                <i class="fas fa-users text-3xl text-yellow-500 mb-2"></i>
+                                <p class="text-sm text-gray-500 uppercase">Reservados</p>
+                                <p class="text-2xl font-bold text-gray-800"><span id="guestCountDisplay">2</span> Lugares</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-6">* Favor de presentar este pase en la entrada</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FRASE INTRODUCTORIA -->
+        <section class="py-16 px-6 text-center bg-white">
+            <div class="max-w-2xl mx-auto reveal">
+                <i class="fas fa-quote-left text-yellow-500 text-2xl mb-4"></i>
+                <p class="text-xl md:text-2xl italic text-gray-600 font-light leading-relaxed">
+                    "El amor no consiste en mirarse el uno al otro, sino en mirar juntos en la misma dirección."
+                </p>
+                <p class="mt-4 text-sm text-gray-400 uppercase tracking-widest">- Antoine de Saint-Exupéry</p>
+                <hr class="w-24 border-yellow-500 mx-auto mt-8">
+            </div>
+        </section>
+
+        <!-- PADRES Y PADRINOS -->
+        <section class="py-12 bg-[#F9F7F2] text-center reveal">
+            <div class="container mx-auto px-4">
+                <h2 class="text-4xl md:text-5xl text-yellow-600 mb-8">Con la bendición de</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div>
+                        <h3 class="font-semibold text-gray-700 uppercase tracking-wider mb-2">Padres de la Novia</h3>
+                        <p class="text-gray-600 text-lg">Sr. Roberto Gómez</p>
+                        <p class="text-gray-600 text-lg">Sra. Elena Martínez</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700 uppercase tracking-wider mb-2">Padres del Novio</h3>
+                        <p class="text-gray-600 text-lg">Sr. Carlos Fernández</p>
+                        <p class="text-gray-600 text-lg">Sra. Lucía Torres</p>
+                    </div>
+                </div>
+                <div class="mt-10">
+                    <h3 class="text-3xl script-font text-yellow-600 mb-4">Padrinos de Velación</h3>
+                    <p class="text-xl text-gray-700">Juan Pérez & María López</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CUENTA REGRESIVA -->
+        <section class="py-20 bg-cover bg-center relative text-white parallax" style="background-image: url('https://images.unsplash.com/photo-1519225448526-06456f5ad695?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');">
+            <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+            <div class="container mx-auto relative z-10 text-center reveal">
+                <h2 class="text-4xl md:text-5xl mb-8 font-script" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">¡Falta muy poco!</h2>
+                <div class="flex justify-center gap-4 md:gap-8" id="countdown">
+                    <!-- JS Countdown -->
+                </div>
+            </div>
+        </section>
+
+        <!-- DETALLES Y MAPAS -->
+        <section class="py-20 container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+                <!-- CEREMONIA -->
+                <div class="text-center bg-white p-8 rounded-lg shadow-xl border border-gray-100 reveal hover:-translate-y-2 transition duration-300">
+                    <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-church text-2xl text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold mb-2">Ceremonia Religiosa</h3>
+                    <p class="text-gray-500 mb-4">16:00 HRS</p>
+                    <p class="text-gray-700 font-medium mb-1">Catedral Metropolitana</p>
+                    <p class="text-gray-500 text-sm mb-6">Av. Independencia 123, Centro Histórico</p>
+                    <a href="https://goo.gl/maps/example" target="_blank" class="inline-block px-6 py-2 border border-yellow-600 text-yellow-600 rounded-full hover:bg-yellow-600 hover:text-white transition duration-300 text-sm uppercase tracking-wide">
+                        <i class="fas fa-map-marker-alt mr-2"></i> Ver Mapa
+                    </a>
+                </div>
+                <!-- RECEPCIÓN -->
+                <div class="text-center bg-white p-8 rounded-lg shadow-xl border border-gray-100 reveal hover:-translate-y-2 transition duration-300">
+                    <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-glass-cheers text-2xl text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold mb-2">Recepción</h3>
+                    <p class="text-gray-500 mb-4">19:00 HRS</p>
+                    <p class="text-gray-700 font-medium mb-1">Hacienda Los Arcángeles</p>
+                    <p class="text-gray-500 text-sm mb-6">Carretera Nacional Km 45</p>
+                    <a href="https://goo.gl/maps/example" target="_blank" class="inline-block px-6 py-2 border border-yellow-600 text-yellow-600 rounded-full hover:bg-yellow-600 hover:text-white transition duration-300 text-sm uppercase tracking-wide">
+                        <i class="fas fa-location-arrow mr-2"></i> Cómo llegar
+                    </a>
+                </div>
+            </div>
+            <div class="text-center mt-12 reveal">
+                <button onclick="addToCalendar()" class="bg-yellow-600 text-white px-8 py-4 rounded-full shadow-lg hover:bg-yellow-700 transition duration-300 flex items-center justify-center mx-auto gap-3 text-lg">
+                    <i class="far fa-calendar-alt"></i> Agendar en Google Calendar
+                </button>
+            </div>
+        </section>
+
+        <!-- CÓDIGO DE VESTIMENTA -->
+        <section class="py-16 bg-[#2C2C2C] text-white text-center reveal">
+            <div class="container mx-auto px-4">
+                <i class="fas fa-user-tie text-4xl text-yellow-500 mb-4"></i>
+                <h2 class="text-4xl script-font mb-6 text-yellow-100">Código de Vestimenta</h2>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-lg inline-block max-w-lg">
+                    <h3 class="text-xl font-bold uppercase tracking-widest mb-2">Etiqueta Rigurosa</h3>
+                    <p class="text-gray-300 mb-4 text-sm">Nos encantaría verte lucir increíble en nuestro gran día.</p>
+                    <div class="flex justify-around items-center gap-8 mt-6">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-user-tie text-2xl mb-2"></i>
+                            <span class="text-xs uppercase">Ellos: Smoking</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-female text-2xl mb-2"></i>
+                            <span class="text-xs uppercase">Ellas: Vestido Largo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GALERÍA -->
+        <section class="py-20 bg-white">
+            <div class="text-center mb-10 reveal">
+                <span class="text-yellow-600 text-sm font-bold uppercase tracking-widest">Nuestra Historia</span>
+                <h2 class="text-5xl script-font text-gray-800">Momentos Inolvidables</h2>
+            </div>
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
+                    <div class="col-span-2 row-span-2 rounded-xl overflow-hidden cursor-pointer group relative reveal" onclick="openLightbox('https://images.unsplash.com/photo-1583939003579-730e3918a45a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')">
+                        <img src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    </div>
+                    <div class="rounded-xl overflow-hidden cursor-pointer group relative reveal" onclick="openLightbox('https://images.unsplash.com/photo-1519225448526-06456f5ad695?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')">
+                        <img src="https://images.unsplash.com/photo-1519225448526-06456f5ad695?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    </div>
+                    <div class="rounded-xl overflow-hidden cursor-pointer group relative reveal" onclick="openLightbox('https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')">
+                        <img src="https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    </div>
+                    <div class="col-span-2 rounded-xl overflow-hidden cursor-pointer group relative reveal" onclick="openLightbox('https://images.unsplash.com/photo-1511285560982-1351cdeb9821?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')">
+                        <img src="https://images.unsplash.com/photo-1511285560982-1351cdeb9821?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MESA DE REGALOS -->
+        <section class="py-16 text-center bg-gray-50 reveal">
+            <div class="max-w-2xl mx-auto px-4">
+                <i class="fas fa-gift text-4xl text-yellow-600 mb-4"></i>
+                <h2 class="text-3xl font-serif mb-6">Mesa de Regalos</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-6 rounded shadow border border-gray-100">
+                        <h4 class="font-bold text-gray-800">Liverpool</h4>
+                        <p class="text-sm text-gray-500">Evento: 12345678</p>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow border border-gray-100">
+                        <h4 class="font-bold text-gray-800">Sobre</h4>
+                        <p class="text-sm text-gray-500">Lluvia de sobres</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER / RSVP -->
+        <footer class="bg-white pt-10 pb-20 border-t border-gray-200">
+            <div class="container mx-auto px-4 text-center reveal">
+                <h2 class="text-4xl script-font text-gray-800 mb-2">Confirmación</h2>
+                <p class="text-gray-500 mb-8">Esperamos contar con tu presencia.</p>
+                <button onclick="sendWhatsapp()" class="bg-[#25D366] text-white px-8 py-4 rounded-full shadow-lg hover:bg-[#20bd5a] transition duration-300 flex items-center justify-center mx-auto gap-3 text-lg w-full max-w-sm">
+                    <i class="fab fa-whatsapp text-2xl"></i>
+                    Confirmar Asistencia
+                </button>
+                <div class="mt-12 text-sm text-gray-400 flex flex-col items-center gap-2">
+                    <p>Sofía & Alejandro | 2026</p>
+                    <button onclick="openAdminLogin()" class="text-gray-300 hover:text-gray-500 text-xs mt-4 underline">Admin</button>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- PANEL DE ADMINISTRACIÓN (Overlay) -->
+    <div id="adminPanel" class="fixed inset-0 z-50 bg-gray-100 overflow-y-auto transform translate-y-full transition-transform duration-300">
+        <div class="bg-white shadow-md p-4 sticky top-0 z-10 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-gray-800">Panel de Control</h2>
+                <div id="dbStatusIndicator" class="hidden md:block">
+                    <!-- JS inserts status here -->
+                </div>
+            </div>
+            <button onclick="closeAdmin()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-2xl"></i></button>
+        </div>
+
+        <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+            <!-- Formulario Nuevo Invitado -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-l-4 border-yellow-500">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-user-plus text-yellow-500"></i> Nuevo Invitado</h3>
+                <form id="addGuestForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" id="inputName" placeholder="Nombre completo / Familia" class="border p-3 rounded col-span-2 focus:outline-none focus:border-yellow-500" required>
+                    <input type="number" id="inputTickets" placeholder="N° Pases" class="border p-3 rounded focus:outline-none focus:border-yellow-500" required min="1">
+                    <button type="submit" class="bg-gray-800 text-white p-3 rounded hover:bg-black transition font-bold">Agregar a Lista</button>
+                </form>
+            </div>
+
+            <!-- Lista de Invitados -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-bold text-gray-700">Lista de Invitados</h3>
+                    <button onclick="exportToExcel()" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 flex items-center gap-2">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
+                                <th class="p-4 border-b">Nombre</th>
+                                <th class="p-4 border-b text-center">Pases</th>
+                                <th class="p-4 border-b">Enlace Personalizado</th>
+                                <th class="p-4 border-b text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guestTableBody" class="text-gray-700 text-sm">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 bg-gray-50 text-right text-xs text-gray-500">
+                    Total Invitados: <span id="totalGuests" class="font-bold text-gray-800">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOGIN ADMIN -->
+    <div id="loginModal" class="fixed inset-0 z-[60] hidden bg-black/90 flex items-center justify-center px-4">
+        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full text-center">
+            <h3 class="text-2xl font-bold mb-4 text-gray-800">Acceso Admin</h3>
+            <p class="text-sm text-gray-500 mb-6">Ingresa la contraseña para gestionar invitados.</p>
+            <input type="password" id="adminPassword" placeholder="Contraseña (1234)" class="w-full border p-3 rounded mb-4 text-center text-lg tracking-widest">
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded hover:bg-gray-300">Cancelar</button>
+                <button onclick="checkLogin()" class="flex-1 bg-yellow-600 text-white py-3 rounded hover:bg-yellow-700 font-bold">Entrar</button>
+            </div>
+            <p id="loginStatus" class="text-xs text-red-500 mt-2 hidden">Contraseña incorrecta</p>
+            <p id="connectionStatus" class="text-xs text-blue-500 mt-2 hidden">Conectando con el servidor...</p>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX -->
+    <div id="lightbox" class="fixed inset-0 z-[60] hidden bg-black/90 flex items-center justify-center p-4" onclick="closeLightbox()">
+        <span class="absolute top-5 right-5 text-white text-4xl cursor-pointer">&times;</span>
+        <img id="lightbox-img" src="" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl animate__animated animate__zoomIn">
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // CONFIGURACIÓN GENERAL
+        const weddingDate = new Date("October 15, 2026 16:00:00").getTime();
+        const adminPin = "1234"; // CONTRASEÑA ADMIN
+        
+        // --- 1. LÓGICA DE INVITADO Y URL ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const guestName = params.get('invitado');
+            const guestTickets = params.get('pases');
+
+            if (guestName && guestTickets) {
+                // Modo Invitado Personalizado
+                document.getElementById('guestNameDisplay').textContent = guestName;
+                document.getElementById('guestCountDisplay').textContent = guestTickets;
+                document.getElementById('personalTicket').classList.remove('hidden');
+                
+                // Scroll automático al ticket
+                setTimeout(() => {
+                    document.getElementById('personalTicket').scrollIntoView({ behavior: 'smooth' });
+                }, 1000);
+            }
+        });
+
+        // --- 2. LÓGICA DEL PANEL DE ADMIN ---
+        function openAdminLogin() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('loginStatus').classList.add('hidden');
+        }
+
+        async function checkLogin() {
+            const pass = document.getElementById('adminPassword').value;
+            const statusEl = document.getElementById('connectionStatus');
+            const errorEl = document.getElementById('loginStatus');
+            
+            errorEl.classList.add('hidden');
+
+            if (pass === adminPin) {
+                // Verificar si Firebase Auth está listo
+                if (!window.isAuthReady) {
+                    // Si no está listo, intentamos ver si ya hay usuario pero la bandera falló
+                    if(window.auth && window.auth.currentUser) {
+                        window.isAuthReady = true;
+                    } else {
+                        // Si de plano no hay usuario, forzamos conexión
+                        statusEl.textContent = "Reconectando con la base de datos...";
+                        statusEl.classList.remove('hidden');
+                        
+                        try {
+                            console.log("Intentando reconexión forzada...");
+                            if(window.signInAnonymously && window.auth) {
+                                await window.signInAnonymously(window.auth);
+                                // Damos un pequeño respiro para que onAuthStateChanged se dispare
+                                setTimeout(checkLogin, 500); 
+                                return;
+                            }
+                        } catch (e) {
+                            console.error("Error reconexión:", e);
+                            statusEl.textContent = "Error de red. Por favor recarga la página.";
+                            return;
+                        }
+
+                        // Reintentar en un momento si sigue lento
+                        statusEl.textContent = "Conectando... (esto puede tardar unos segundos)";
+                        setTimeout(checkLogin, 2000);
+                        return;
+                    }
+                }
+
+                statusEl.classList.add('hidden');
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('translate-y-full');
+                loadGuests(); 
+            } else {
+                errorEl.textContent = "Contraseña incorrecta";
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        function closeAdmin() {
+            document.getElementById('adminPanel').classList.add('translate-y-full');
+        }
+
+        // --- 3. FIREBASE: GESTIÓN DE INVITADOS ---
+        async function loadGuests() {
+            if(!window.auth.currentUser) {
+                console.log("Usuario no autenticado, reintentando...");
+                return;
+            }
+
+            const q = window.query(
+                window.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'guests'), 
+                window.orderBy('createdAt', 'desc')
+            );
+            
+            // onSnapshot con Callback de ERROR para evitar "Uncaught Error"
+            window.onSnapshot(q, (snapshot) => {
+                const tbody = document.getElementById('guestTableBody');
+                tbody.innerHTML = '';
+                let total = 0;
+
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">No hay invitados aún. Agrega uno arriba.</td></tr>';
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const guest = docSnap.data();
+                    const guestId = docSnap.id;
+                    total += parseInt(guest.tickets || 0);
+
+                    // Generar Link
+                    const baseUrl = window.location.origin + window.location.pathname;
+                    const personalLink = `${baseUrl}?invitado=${encodeURIComponent(guest.name)}&pases=${guest.tickets}`;
+                    const whatsappMsg = `Hola ${guest.name}, te invitamos a nuestra boda. Tienes ${guest.tickets} lugares reservados. Aquí está tu pase digital: ${personalLink}`;
+                    const whatsappLink = `https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`;
+
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="p-4 font-medium">${guest.name}</td>
+                        <td class="p-4 text-center">${guest.tickets}</td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <input type="text" value="${personalLink}" readonly class="text-xs bg-gray-100 p-1 rounded w-32 truncate border">
+                                <a href="${whatsappLink}" target="_blank" class="bg-green-500 text-white p-2 rounded hover:bg-green-600" title="Enviar por WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                                <button onclick="copyToClipboard('${personalLink}')" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" title="Copiar Link">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="deleteGuest('${guestId}')" class="text-red-500 hover:text-red-700 p-2" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('totalGuests').innerText = total;
+            }, (error) => {
+                console.error("Error cargando lista de invitados:", error);
+                document.getElementById('guestTableBody').innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">Error de conexión: ${error.code}</td></tr>`;
+            });
+        }
+
+        // Agregar Invitado
+        document.getElementById('addGuestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('inputName').value;
+            const tickets = document.getElementById('inputTickets').value;
+
+            if(!window.auth.currentUser) return alert("Esperando conexión...");
+
+            try {
+                await window.addDoc(window.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'guests'), {
+                    name: name,
+                    tickets: parseInt(tickets),
+                    createdAt: new Date().toISOString()
+                });
+                e.target.reset();
+            } catch (err) {
+                console.error(err);
+                alert("Error al guardar: " + err.message);
+            }
+        });
+
+        // Eliminar Invitado
+        window.deleteGuest = async (id) => {
+            if(confirm('¿Seguro que deseas eliminar a este invitado?')) {
+                try {
+                    await window.deleteDoc(window.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'guests', id));
+                } catch (err) {
+                    alert("Error al eliminar: " + err.message);
+                }
+            }
+        };
+
+        // Copiar al portapapeles
+        window.copyToClipboard = (text) => {
+            navigator.clipboard.writeText(text).then(() => alert("Enlace copiado"));
+        };
+
+        // Exportar a Excel (CSV)
+        window.exportToExcel = () => {
+            const tableRows = document.querySelectorAll('#guestTableBody tr');
+            if(tableRows.length === 0 || tableRows[0].innerText.includes('No hay invitados')) return alert("No hay datos para exportar");
+
+            let csvContent = "data:text/csv;charset=utf-8,Nombre,Pases\n";
+            
+            tableRows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                // Asegurarse de que sea una fila de datos y no de error/vacio
+                if(cols.length > 1) {
+                    const name = cols[0]?.innerText;
+                    const pases = cols[1]?.innerText;
+                    if(name) csvContent += `${name},${pases}\n`;
+                }
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "lista_boda_invitados.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+
+        // --- FUNCIONES ORIGINALES (UI, MÚSICA, ETC) ---
+        
+        // Cuenta Regresiva
+        const countdownFunction = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = weddingDate - now;
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const timeHTML = (val, label) => `
+                <div class="flex flex-col items-center">
+                    <span class="text-3xl md:text-5xl font-bold font-mono">${val}</span>
+                    <span class="text-xs uppercase tracking-wider mt-1 opacity-80">${label}</span>
+                </div>
+            `;
+            const el = document.getElementById("countdown");
+            if(el) {
+                el.innerHTML = 
+                    timeHTML(days, "Días") + '<span class="text-3xl">:</span>' +
+                    timeHTML(hours, "Hrs") + '<span class="text-3xl">:</span>' +
+                    timeHTML(minutes, "Min");
+            }
+        }, 1000);
+
+        // Música
+        const audio = document.getElementById("weddingMusic");
+        const musicBtn = document.getElementById("musicBtn");
+        const musicIcon = document.getElementById("musicIcon");
+        let isPlaying = false;
+        function toggleMusic() {
+            if (isPlaying) {
+                audio.pause();
+                musicIcon.classList.remove("fa-pause");
+                musicIcon.classList.add("fa-music");
+                musicBtn.classList.remove("animate-spin");
+            } else {
+                audio.play().then(() => {
+                    musicIcon.classList.remove("fa-music");
+                    musicIcon.classList.add("fa-pause");
+                    musicBtn.classList.add("animate-spin-slow");
+                }).catch(e => console.log("Click necesario"));
+            }
+            isPlaying = !isPlaying;
+        }
+
+        // Scroll Reveal
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                if (elementTop < windowHeight - 100) reveals[i].classList.add("active");
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        reveal();
+
+        // Lightbox
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        window.openLightbox = (src) => {
+            lightboxImg.src = src;
+            lightbox.classList.remove('hidden');
+        }
+        window.closeLightbox = () => {
+            lightbox.classList.add('hidden');
+            lightboxImg.src = '';
+        }
+
+        // WhatsApp General (Botón Footer)
+        window.sendWhatsapp = () => {
+            // Intenta obtener datos de la URL si es un invitado específico
+            const params = new URLSearchParams(window.location.search);
+            const guestName = params.get('invitado') || '';
+            
+            const message = guestName 
+                ? `Hola, soy ${guestName}. Confirmo mi asistencia a la boda.` 
+                : `Hola, muchas felicidades. Me gustaría confirmar mi asistencia.`;
+                
+            const url = `https://wa.me/525512345678?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        // Calendar
+        window.addToCalendar = () => {
+            const start = "20261015T160000";
+            const end = "20261016T020000";
+            const details = "Boda de Sofía y Alejandro.";
+            const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=Boda&dates=${start}/${end}&details=${encodeURIComponent(details)}&location=Hacienda&sf=true&output=xml`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
