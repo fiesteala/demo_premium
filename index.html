@@ -113,13 +113,31 @@
         
         window.saveCustomConfig = (jsonString) => {
             try {
-                const conf = JSON.parse(jsonString);
-                if(!conf.apiKey) throw new Error("Configuración inválida");
-                localStorage.setItem('custom_firebase_config', jsonString);
-                alert("Configuración guardada. Recargando...");
+                // AUTO-CORRECCIÓN DE FORMATO:
+                // 1. Limpiar espacios raros (non-breaking spaces) que a veces vienen al copiar
+                let cleanString = jsonString.replace(/[\u00A0\u200B]/g, ' ').trim();
+                
+                // 2. Si las claves no tienen comillas (ej: apiKey: "..."), se las ponemos.
+                // Apuntamos específicamente a las claves conocidas de Firebase para no romper URLs
+                cleanString = cleanString.replace(/(apiKey|authDomain|projectId|storageBucket|messagingSenderId|appId|measurementId)\s*:/g, '"$1":');
+                
+                // 3. Convertir comillas simples a dobles si las hubiera
+                cleanString = cleanString.replace(/'/g, '"');
+                
+                // 4. Quitar coma final si existe (trailing comma) antes de cerrar llave
+                cleanString = cleanString.replace(/,(\s*})/g, '$1');
+
+                const conf = JSON.parse(cleanString);
+                
+                if(!conf.apiKey) throw new Error("Falta apiKey");
+                
+                // Guardamos la versión corregida y válida
+                localStorage.setItem('custom_firebase_config', JSON.stringify(conf));
+                alert("¡Configuración guardada y corregida! La página se recargará ahora.");
                 window.location.reload();
             } catch(e) {
-                alert("Error: JSON inválido. Copia solo lo que está entre llaves { }.");
+                console.error(e);
+                alert("No se pudo leer la configuración. Por favor asegúrate de copiar TODO el bloque, incluyendo las llaves { y } del principio y final.");
             }
         }
         
