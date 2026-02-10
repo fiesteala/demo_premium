@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiesteala - Invitaciones Web App Inteligentes</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#2563eb', // Azul Eléctrico
+                            hover: '#1d4ed8',
+                            accent: '#f59e0b', // Ámbar
+                            dark: '#0f172a', // Slate 900
+                            light: '#f8fafc', // Slate 50
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'blob': 'blob 7s infinite',
+                        'spin-slow': 'spin 8s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- ESTILOS VISUALES --- */
+        body { transition: background-color 0.5s ease, color 0.5s ease; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+        }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        /* Modal Transitions */
+        dialog[open] { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Logo Animations */
+        @keyframes click-press {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(0.92) rotate(-2deg); }
+        }
+        @keyframes confetti-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.35); }
+            100% { transform: scale(1); }
+        }
+        .animating .cursor-icon { animation: click-press 0.6s ease-in-out forwards; }
+        .animating .spark-group { animation: confetti-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body class="bg-brand-light dark:bg-brand-dark text-slate-800 dark:text-slate-100 font-body antialiased selection:bg-brand selection:text-white overflow-x-hidden transition-colors duration-300">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 transition-all duration-300 glass-panel shadow-sm" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <!-- Logo -->
+                <a href="#" class="flex-shrink-0 flex items-center group cursor-pointer" onclick="window.scrollTo(0,0)">
+                    <div id="fiesteala-logo-nav" class="w-44 md:w-48"> 
+                        <svg class="h-12 w-auto overflow-visible" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+                            <g transform="translate(50, 20)">
+                                <path class="cursor-icon group-hover:translate-x-1 transition-transform" d="M10,10 L30,70 L45,45 L70,30 Z" fill="#2563eb" stroke="white" stroke-width="3" />
+                                <g class="spark-group" transform="translate(10, 10)">
+                                    <path d="M-3,-6 L-6,-12" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                                    <path d="M-6,-3 L-12,-6" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                                    <path d="M3,-6 L6,-12" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                                    <circle cx="-9" cy="-9" r="2" fill="#f59e0b" />
+                                </g>
+                            </g>
+                            <g transform="translate(130, 85)">
+                                <text class="fill-slate-900 dark:fill-white transition-colors duration-500" font-family="Poppins, sans-serif" font-weight="800" font-size="44" letter-spacing="-1">fiesteala</text>
+                                <circle class="dot-icon" cx="182" cy="-5" r="4.5" fill="#2563eb" />
+                                <text x="188" y="0" font-family="Poppins, sans-serif" font-weight="400" font-size="24" fill="#2563eb">com</text>
+                            </g>
+                        </svg>
+                    </div>
+                </a>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8 items-center font-sans font-semibold text-sm">
+                    <a href="#webapp" class="hover:text-brand transition">Web App</a>
+                    <a href="#platform" class="hover:text-brand transition">Plataforma</a>
+                    <a href="#security" class="hover:text-brand transition">Seguridad</a>
+                    <a href="#pricing" class="hover:text-brand transition">Precios</a>
+                    
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 text-brand-accent flex items-center justify-center hover:scale-110 transition shadow-inner">
+                        <i class="fa-solid fa-sun block dark:hidden text-lg"></i>
+                        <i class="fa-solid fa-moon hidden dark:block text-lg text-white"></i>
+                    </button>
+
+                    <!-- Settings Gear (Engrane) - ABRE PANEL ADMIN -->
+                    <button onclick="openAdminLogin()" class="text-slate-400 hover:text-brand transition p-2 cursor-pointer" title="Panel de Administración">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Mobile Controls -->
+                <div class="md:hidden flex items-center gap-4">
+                     <button id="theme-toggle-mobile" class="text-brand-accent">
+                        <i class="fa-solid fa-sun block dark:hidden text-xl"></i>
+                        <i class="fa-solid fa-moon hidden dark:block text-xl"></i>
+                    </button>
+                    <button id="mobile-menu-btn" class="text-slate-800 dark:text-white transition">
+                        <i class="fa-solid fa-bars-staggered text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden absolute top-20 left-0 w-full glass-panel border-t border-slate-200 dark:border-slate-800 shadow-xl">
+            <div class="px-6 py-6 space-y-4 font-sans text-center">
+                <a href="#webapp" class="block py-2 text-lg font-bold">Web App</a>
+                <a href="#platform" class="block py-2 text-lg font-bold">Plataforma</a>
+                <a href="#pricing" class="block py-2 text-lg font-bold">Precios</a>
+                <button onclick="openModal();" class="w-full py-3 bg-brand text-white font-bold rounded-xl mt-4">
+                    Contacto
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+            <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand/20 dark:bg-blue-900/30 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-70 animate-blob"></div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-300/30 dark:bg-purple-900/30 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-70 animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="flex flex-col lg:flex-row gap-16 items-center">
+                <div class="text-center lg:text-left flex-1">
+                    <div class="inline-flex items-center px-4 py-2 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 mb-6">
+                        <span class="flex h-3 w-3 relative mr-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-brand"></span>
+                        </span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Sistema 2026 Ready</span>
+                    </div>
+                    
+                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-sans font-extrabold leading-tight mb-6 text-slate-900 dark:text-white">
+                        Tu invitación no es una imagen. <br>
+                        Es una <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand to-cyan-400">Web App.</span>
+                    </h1>
+                    
+                    <p class="text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                        Creamos aplicaciones web interactivas para tu evento. <strong>Confirmación inteligente, mapas GPS, calendario sincronizado y galerías en tiempo real</strong> en un solo link.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <button onclick="openModal()" class="px-8 py-4 bg-brand hover:bg-brand-hover text-white rounded-2xl font-bold transition shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 group">
+                            Crear mi Evento <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition"></i>
+                        </button>
+                        <a href="#webapp" class="px-8 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-mobile-screen-button text-brand"></i> Ver Demo Móvil
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Visual: Dashboard + Phone Composition -->
+                <div class="relative flex-1 w-full max-w-lg lg:max-w-none animate-float hidden md:block">
+                    <!-- Dashboard Card (Behind) -->
+                    <div class="absolute top-10 -right-4 w-full md:w-[120%] h-[400px] bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl p-4 opacity-90 hidden md:block rotate-3 z-0">
+                        <div class="flex items-center gap-4 border-b border-slate-700 pb-4 mb-4">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <div class="ml-auto text-xs text-slate-400 font-mono">PANEL DE CONTROL</div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-slate-800 p-3 rounded-lg text-center">
+                                <p class="text-[10px] text-slate-400">Invitados</p>
+                                <p class="text-xl font-bold text-white">150</p>
+                            </div>
+                            <div class="bg-slate-800 p-3 rounded-lg text-center">
+                                <p class="text-[10px] text-slate-400">Confirmados</p>
+                                <p class="text-xl font-bold text-green-400">85</p>
+                            </div>
+                            <div class="bg-slate-800 p-3 rounded-lg text-center">
+                                <p class="text-[10px] text-slate-400">Mesas</p>
+                                <p class="text-xl font-bold text-brand">15</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phone (Front) -->
+                    <div class="relative w-[260px] mx-auto lg:mr-20 h-[520px] bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border-[6px] border-slate-800 shadow-2xl overflow-hidden z-10">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 h-5 w-24 bg-black rounded-b-xl z-20"></div>
+                        <div class="w-full h-full relative bg-slate-900">
+                            <!-- Invitation Preview -->
+                            <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=600&q=80" class="w-full h-1/2 object-cover">
+                            <div class="p-6 bg-white dark:bg-slate-900 h-1/2 text-center relative">
+                                <h3 class="font-serif text-2xl mb-1 text-slate-900 dark:text-white">Fiesta VIP</h3>
+                                <p class="text-xs text-slate-500 mb-4">Presenta este código en la entrada</p>
+                                <!-- QR Code Mockup -->
+                                <div class="w-32 h-32 mx-auto bg-white p-2 border border-slate-200 rounded-lg">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=DemoFiesteala" class="w-full h-full opacity-80">
+                                </div>
+                                <p class="text-[10px] text-brand font-bold mt-2">MESA 05 - ASIENTOS 2</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Web App Features (MASONRY BENTO GRID) -->
+    <section id="webapp" class="py-24 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <span class="text-brand font-bold uppercase tracking-widest text-xs">Experiencia del Invitado</span>
+                <h2 class="text-3xl md:text-5xl font-sans font-bold text-slate-900 dark:text-white mt-4 leading-tight">
+                    Una <span class="text-brand">Web App</span> Completa<br>para tus Invitados
+                </h2>
+                <p class="mt-6 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-lg">
+                    Rompe con lo tradicional. Cada invitación es una aplicación interactiva con herramientas que tus invitados amarán.
+                </p>
+            </div>
+
+            <!-- Bento Grid / Masonry Layout -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[minmax(180px,auto)]">
+                <!-- 1. Galería Colaborativa (HERO - Grande) -->
+                <div class="col-span-2 row-span-2 rounded-[2rem] bg-slate-900 dark:bg-brand-dark text-white p-8 relative overflow-hidden group hover:shadow-2xl transition duration-500 border border-slate-800 cursor-default">
+                    <div class="relative z-10 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-12 h-12 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center text-2xl group-hover:bg-brand group-hover:text-white transition-colors duration-300">
+                                    <i class="fa-solid fa-camera-rotate"></i>
+                                </div>
+                                <span class="text-xs font-bold uppercase tracking-wider bg-brand px-2 py-1 rounded-md">En Vivo</span>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-2">Galería Colaborativa</h3>
+                            <p class="text-slate-300 text-sm max-w-xs leading-relaxed">
+                                Tus invitados son los fotógrafos. Todas las fotos que tomen se suben en tiempo real a un muro dinámico.
+                            </p>
+                            <!-- Nota de Control -->
+                            <div class="mt-4 p-3 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm">
+                                <p class="text-[10px] text-slate-400">
+                                    <i class="fa-solid fa-toggle-on text-green-400 mr-1"></i> <strong>Smart Activation:</strong> Actívala desde el panel 1 hora antes del evento.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 w-1/2 h-full opacity-30 group-hover:opacity-50 transition duration-500 bg-[url('https://images.unsplash.com/photo-1511285560982-1351cdeb9821?auto=format&fit=crop&w=400')] bg-cover bg-center"></div>
+                </div>
+
+                <!-- 2. RSVP -->
+                <div class="col-span-1 row-span-1 rounded-[2rem] bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 p-6 flex flex-col justify-between hover:scale-[1.02] transition duration-300 group">
+                    <div class="w-10 h-10 bg-green-100 dark:bg-green-900/50 text-green-600 rounded-xl flex items-center justify-center text-xl group-hover:rotate-12 transition">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 dark:text-white mt-4">RSVP WhatsApp</h4>
+                        <p class="text-xs text-slate-500 dark:text-green-200/70 mt-1">Confirmación directa.</p>
+                    </div>
+                </div>
+
+                <!-- 3. GPS -->
+                <div class="col-span-1 row-span-1 rounded-[2rem] bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-6 flex flex-col justify-between hover:scale-[1.02] transition duration-300 group">
+                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 text-blue-600 rounded-xl flex items-center justify-center text-xl group-hover:rotate-12 transition">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 dark:text-white mt-4">Waze & Maps</h4>
+                        <p class="text-xs text-slate-500 dark:text-blue-200/70 mt-1">Ubicación exacta.</p>
+                    </div>
+                </div>
+
+                <!-- 4. Música de Fondo & Playlist (Wide) -->
+                <div class="col-span-2 md:col-span-2 row-span-1 rounded-[2rem] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-6 flex items-center gap-6 relative overflow-hidden group hover:border-brand/30 transition duration-300">
+                    <div class="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex-shrink-0 flex items-center justify-center animate-spin-slow shadow-inner">
+                        <i class="fa-solid fa-music text-3xl text-brand"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h4 class="font-bold text-slate-900 dark:text-white text-lg">Música & Ambiente</h4>
+                        <div class="flex gap-4 mt-2">
+                             <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center"><i class="fa-solid fa-play-circle mr-1"></i> Auto-Play de Fondo</span>
+                             <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center"><i class="fa-brands fa-spotify mr-1"></i> Playlist Colaborativa</span>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- 5. Galería de Sesión -->
+                 <div class="col-span-2 md:col-span-2 row-span-1 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-0 relative overflow-hidden group hover:shadow-xl transition duration-300">
+                    <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=500&q=80')] bg-cover bg-center transition duration-700 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="relative z-10 p-6 h-full flex flex-col justify-end">
+                        <h4 class="font-bold text-white text-lg"><i class="fa-regular fa-images mr-2"></i>Galería de Invitación</h4>
+                        <p class="text-xs text-gray-300 mt-1">Sube tus fotos de sesión casual o pre-boda.</p>
+                    </div>
+                </div>
+
+                <!-- 6. Countdown -->
+                <div class="col-span-1 row-span-1 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 p-6 hover:scale-[1.02] transition duration-300 group">
+                    <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:animate-pulse">
+                        <i class="fa-solid fa-hourglass-start"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white">Countdown</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Genera emoción.</p>
+                </div>
+
+                <!-- 7. Regalos -->
+                <div class="col-span-1 row-span-1 rounded-[2rem] bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 p-6 hover:scale-[1.02] transition duration-300 group">
+                    <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 text-purple-500 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:-translate-y-1 transition">
+                        <i class="fa-solid fa-gift"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white">Regalos</h4>
+                    <p class="text-xs text-slate-500 dark:text-purple-200/70 mt-1">Sobres o tiendas.</p>
+                </div>
+
+                <!-- 8. Calendario -->
+                <div class="col-span-1 row-span-1 rounded-[2rem] bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 p-6 hover:scale-[1.02] transition duration-300 group">
+                    <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-4">
+                        <i class="fa-regular fa-calendar-plus"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white">Agendar</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Google & iCal.</p>
+                </div>
+
+                <!-- 9. Sharing -->
+                <div class="col-span-1 row-span-1 rounded-[2rem] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-6 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition duration-300 cursor-pointer">
+                    <div class="flex -space-x-2 mb-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs"><i class="fa-brands fa-facebook-f"></i></div>
+                        <div class="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs"><i class="fa-brands fa-instagram"></i></div>
+                        <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs"><i class="fa-brands fa-whatsapp"></i></div>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white text-sm">Compartir</h4>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platform Features -->
+    <section id="platform" class="py-24 bg-brand-light dark:bg-[#0f172a] relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <span class="text-brand font-bold uppercase tracking-widest text-xs">Tu Centro de Mando</span>
+                <h2 class="text-3xl font-sans font-bold text-slate-900 dark:text-white mt-2">Panel de Control Inteligente</h2>
+                <p class="mt-4 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+                    Como organizador, tendrás acceso a una plataforma privada para gestionar tu evento.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="group p-8 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-brand/50 transition duration-300 shadow-sm">
+                    <div class="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 text-brand text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-users-gear"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-xl mb-3">Gestión de Lista</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Sube tu lista, edita nombres, asigna pases y envía invitaciones personalizadas.
+                    </p>
+                </div>
+                <div class="group p-8 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-brand/50 transition duration-300 shadow-sm">
+                    <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mb-6 text-brand-accent text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-chair"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-xl mb-3">Layout de Mesas</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Diseña el plano, define sillas por mesa y arrastra invitados para sentarlos.
+                    </p>
+                </div>
+                <div class="group p-8 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-brand/50 transition duration-300 shadow-sm">
+                    <div class="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mb-6 text-green-600 text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-xl mb-3">Analíticas en Vivo</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Visualiza al instante confirmaciones, cancelaciones y asistencia real el día del evento.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security & QR Section -->
+    <section id="security" class="py-24 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row items-center gap-16">
+                <!-- Text -->
+                <div class="flex-1 order-2 lg:order-1">
+                    <div class="inline-block p-3 rounded-2xl bg-brand text-white text-2xl mb-6 shadow-lg shadow-brand/30">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </div>
+                    <h2 class="text-4xl font-sans font-bold text-slate-900 dark:text-white mb-6">Acceso Blindado con QR</h2>
+                    <p class="text-lg text-slate-600 dark:text-slate-400 mb-6">
+                        Olvídate de las listas de papel en la entrada. Nuestro sistema genera un código QR único e incopiable para cada invitación.
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-green-600 flex-shrink-0 mt-1">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white">App de Escaneo (Cadenero)</h4>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">Escaneo rápido en puerta con validación instantánea.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-500 flex-shrink-0 mt-1">
+                                <i class="fa-solid fa-ban"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white">Anti-Fraude</h4>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">Alerta inmediata de "Código Ya Usado" para evitar colados.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual -->
+                <div class="flex-1 order-1 lg:order-2 relative">
+                    <div class="relative w-[300px] mx-auto h-[600px] bg-black rounded-[3rem] border-4 border-slate-800 shadow-2xl overflow-hidden">
+                        <!-- Simulate Scanner Camera View -->
+                        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=600&q=80')] bg-cover bg-center">
+                            <div class="absolute inset-0 bg-black/40"></div>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <div class="w-64 h-64 border-2 border-white/50 rounded-xl relative">
+                                    <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-xl animate-pulse"></div>
+                                    <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-xl animate-pulse"></div>
+                                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-xl animate-pulse"></div>
+                                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-xl animate-pulse"></div>
+                                    <div class="w-full h-1 bg-green-500 shadow-[0_0_10px_#22c55e] absolute top-1/2 animate-pulse"></div>
+                                </div>
+                                <div class="mt-8 bg-black/80 backdrop-blur px-6 py-4 rounded-2xl text-center border-l-4 border-green-500 animate-bounce">
+                                    <p class="text-green-400 font-bold text-lg">ACCESO PERMITIDO</p>
+                                    <p class="text-white text-sm">Familia González (4 pax)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Wendy Planner Section -->
+    <section id="planner" class="py-20 bg-gradient-to-br from-pink-50 to-white dark:from-slate-900 dark:to-slate-800">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <div class="inline-flex items-center gap-2 mb-6">
+                 <span class="px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-bold uppercase">Exclusivo</span>
+            </div>
+            <h2 class="text-4xl font-serif font-bold text-slate-900 dark:text-white mb-6">
+                Incluye <span class="text-pink-600">Wendy Planner App</span>
+            </h2>
+            <p class="text-lg text-slate-600 dark:text-slate-300 mb-10">
+                Tu asistente personal de bolsillo. Dependiendo de tu plan, obtienes acceso a nuestra suite integrada para llevar el control de presupuestos, proveedores y timeline del evento.
+            </p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+                    <i class="fa-solid fa-sack-dollar text-3xl text-green-500 mb-3"></i>
+                    <h4 class="font-bold text-slate-800 dark:text-white text-sm">Presupuesto</h4>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+                    <i class="fa-solid fa-list-check text-3xl text-brand mb-3"></i>
+                    <h4 class="font-bold text-slate-800 dark:text-white text-sm">Checklist</h4>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+                    <i class="fa-solid fa-address-book text-3xl text-purple-500 mb-3"></i>
+                    <h4 class="font-bold text-slate-800 dark:text-white text-sm">Proveedores</h4>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+                    <i class="fa-solid fa-clock text-3xl text-amber-500 mb-3"></i>
+                    <h4 class="font-bold text-slate-800 dark:text-white text-sm">Minuto a Minuto</h4>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 bg-white dark:bg-[#0b1120] transition-colors duration-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-sans font-bold text-slate-900 dark:text-white">Planes Flexibles</h2>
+                <p class="text-slate-500 mt-2">Elige el nivel de control que necesitas para tu evento.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-start" id="pricing-grid">
+                <!-- Lite -->
+                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-8 border border-slate-100 dark:border-slate-700 hover:shadow-xl transition">
+                    <h3 class="text-lg font-bold text-slate-500 dark:text-slate-400" id="plan-basic-title">Diseño Básico</h3>
+                    <p class="text-4xl font-extrabold text-slate-900 dark:text-white my-4" id="plan-basic-price">$350</p>
+                    <ul class="space-y-4 text-sm text-slate-600 dark:text-slate-300 mb-8">
+                        <li class="flex items-center"><i class="fa-solid fa-check text-brand mr-3"></i> Invitación Web Interactiva</li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-brand mr-3"></i> RSVP WhatsApp</li>
+                    </ul>
+                    <button onclick="openModal('Esencial')" class="w-full py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl font-bold hover:bg-gray-100 transition">Elegir</button>
+                </div>
+
+                <!-- Pro (Destacado) -->
+                <div class="bg-slate-900 dark:bg-brand-dark rounded-3xl p-8 relative shadow-2xl transform md:scale-105 z-10 border border-slate-800 dark:border-slate-700">
+                    <div class="absolute top-0 inset-x-0 -mt-3 flex justify-center">
+                        <span class="bg-brand text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">PLATAFORMA COMPLETA</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-brand-accent mt-2" id="plan-pro-title">Control Total</h3>
+                    <p class="text-5xl font-extrabold text-white my-6" id="plan-pro-price">$600</p>
+                    <ul class="space-y-4 text-sm text-slate-300 mb-8 font-medium">
+                        <li class="flex items-center"><i class="fa-solid fa-star text-brand-accent mr-3"></i> <strong>Panel de Control</strong></li>
+                        <li class="flex items-center"><i class="fa-solid fa-star text-brand-accent mr-3"></i> <strong>Layout de Mesas</strong></li>
+                        <li class="flex items-center"><i class="fa-solid fa-star text-brand-accent mr-3"></i> Wendy Planner (Básico)</li>
+                    </ul>
+                    <button onclick="openModal('Profesional')" class="w-full py-4 bg-brand text-white rounded-xl hover:bg-brand-hover transition font-bold shadow-lg shadow-blue-600/30">¡Quiero el Control!</button>
+                </div>
+
+                 <!-- Enterprise -->
+                 <div class="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-8 border border-slate-100 dark:border-slate-700 hover:shadow-xl transition">
+                    <h3 class="text-lg font-bold text-slate-500 dark:text-slate-400" id="plan-vip-title">VIP Access</h3>
+                    <p class="text-4xl font-extrabold text-slate-900 dark:text-white my-4" id="plan-vip-price">$950</p>
+                    <ul class="space-y-4 text-sm text-slate-600 dark:text-slate-300 mb-8">
+                        <li class="flex items-center"><i class="fa-solid fa-check text-brand mr-3"></i> Todo lo del plan Control</li>
+                        <li class="flex items-center"><i class="fa-solid fa-shield-halved text-purple-500 mr-3"></i> <strong>Boletos QR Únicos</strong></li>
+                        <li class="flex items-center"><i class="fa-solid fa-shield-halved text-purple-500 mr-3"></i> <strong>App Cadenero</strong></li>
+                    </ul>
+                    <button onclick="openModal('Acceso Total')" class="w-full py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl font-bold hover:bg-gray-100 transition">Elegir</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Completo -->
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div class="col-span-1 md:col-span-1">
+                <!-- Logo Corregido -->
+                <div class="cursor-pointer mb-4" onclick="window.scrollTo(0,0)">
+                    <svg viewBox="0 0 400 150" class="w-40 h-auto" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(50, 20)">
+                            <path d="M10,10 L30,70 L45,45 L70,30 Z" fill="#2563eb" />
+                            <g transform="translate(10, 10)">
+                                <path d="M-3,-6 L-6,-12" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                                <path d="M-6,-3 L-12,-6" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                                <path d="M3,-6 L6,-12" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                                <circle cx="-9" cy="-9" r="2" fill="#f59e0b" />
+                            </g>
+                        </g>
+                        <g transform="translate(130, 85)">
+                            <text class="fill-slate-900 dark:fill-white" font-family="Poppins, sans-serif" font-weight="800" font-size="44" letter-spacing="-1">fiesteala</text>
+                            <circle cx="182" cy="-5" r="4.5" fill="#2563eb" />
+                            <text x="188" y="0" font-family="Poppins, sans-serif" font-weight="400" font-size="24" fill="#2563eb">com</text>
+                        </g>
+                    </svg>
+                </div>
+                <p class="text-sm">Tecnología para eventos inolvidables. Controla, organiza y disfruta.</p>
+            </div>
+            
+            <div>
+                <h4 class="text-white font-bold mb-4">Producto</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#webapp" class="hover:text-brand transition">Web App</a></li>
+                    <li><a href="#platform" class="hover:text-brand transition">Panel de Control</a></li>
+                    <li><a href="#security" class="hover:text-brand transition">Seguridad QR</a></li>
+                    <li><a href="#pricing" class="hover:text-brand transition">Precios</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-bold mb-4">Legal</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-brand transition">Términos y Condiciones</a></li>
+                    <li><a href="#" class="hover:text-brand transition">Política de Privacidad</a></li>
+                    <li><a href="#" class="hover:text-brand transition">Cookies</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-bold mb-4">Contacto</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><i class="fa-solid fa-envelope mr-2"></i> hola@fiesteala.com</li>
+                    <li><i class="fa-brands fa-whatsapp mr-2"></i> +52 55 1234 5678</li>
+                    <li class="flex gap-4 mt-4 text-xl">
+                        <a href="#" class="hover:text-brand transition"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="hover:text-brand transition"><i class="fa-brands fa-facebook"></i></a>
+                        <a href="#" class="hover:text-brand transition"><i class="fa-brands fa-tiktok"></i></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-slate-800 pt-8 text-center text-xs">
+            &copy; 2026 Fiesteala.com. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <!-- MODAL DE CONTACTO (CLIENTE) -->
+    <dialog id="contactModal" class="p-0 rounded-3xl shadow-2xl backdrop:bg-black/50 w-full max-w-lg m-auto bg-transparent">
+        <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-8 rounded-3xl relative overflow-hidden border border-slate-100 dark:border-slate-700">
+            <button onclick="document.getElementById('contactModal').close()" class="absolute top-4 right-4 text-slate-400 hover:text-brand transition w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-2xl font-sans font-bold mb-2">Solicitar Acceso</h3>
+            <p class="text-slate-500 text-sm mb-6">Cuéntanos sobre tu evento para habilitar tu panel de control.</p>
+            
+            <form id="contactForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div>
+                    <input type="text" placeholder="Tu Nombre / Empresa" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition">
+                </div>
+                <div>
+                    <select id="planSelect" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand">
+                        <option value="General">Me interesa la plataforma...</option>
+                        <option value="Esencial">Solo Invitación ($350)</option>
+                        <option value="Profesional">Panel de Control + Mesas ($600)</option>
+                        <option value="Acceso Total">QR + App Seguridad ($950)</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="tel" placeholder="WhatsApp" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand">
+                </div>
+                
+                <button type="submit" class="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-500/20 mt-4">
+                    Contactar Asesor
+                </button>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <dialog id="adminLoginModal" class="p-0 rounded-3xl shadow-2xl backdrop:bg-black/80 w-full max-w-sm m-auto bg-transparent">
+        <div class="bg-slate-900 text-white p-8 rounded-3xl border border-slate-700 text-center">
+            <button onclick="document.getElementById('adminLoginModal').close()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="mb-6"><i class="fa-solid fa-lock text-4xl text-brand"></i></div>
+            <h3 class="text-xl font-bold mb-2">Acceso Administrador</h3>
+            <p class="text-xs text-slate-400 mb-4">Ingresa tu contraseña maestra.</p>
+            <input type="password" id="adminPassword" placeholder="Contraseña" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white mb-4 focus:border-brand focus:outline-none">
+            <button onclick="checkAdminPassword()" class="w-full bg-brand hover:bg-blue-600 text-white font-bold py-2 rounded-lg">Entrar</button>
+        </div>
+    </dialog>
+
+    <!-- ADMIN PANEL OVERLAY -->
+    <div id="adminPanel" class="fixed inset-0 bg-slate-950 text-white z-[100] hidden flex-col font-sans">
+        <!-- Header -->
+        <header class="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900">
+            <div class="flex items-center gap-4">
+                <span class="font-bold text-xl text-brand">Fiesteala Admin</span>
+                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                    <button onclick="showAdminTab('invites')" class="px-4 py-1.5 rounded-md text-sm font-medium bg-brand text-white">Invitaciones</button>
+                    <button onclick="showAdminTab('plans')" class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white">Planes</button>
+                </nav>
+            </div>
+            <button onclick="closeAdminDashboard()" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded text-sm">Cerrar Panel</button>
+        </header>
+
+        <!-- Content -->
+        <main class="flex-1 overflow-y-auto p-8">
+            <!-- TAB: INVITACIONES -->
+            <div id="tab-invites" class="max-w-4xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Gestor de Invitaciones HTML</h2>
+                    <button onclick="showCreateInviteForm()" class="bg-brand px-4 py-2 rounded-lg font-bold flex items-center gap-2"><i class="fa-solid fa-plus"></i> Nueva</button>
+                </div>
+                
+                <!-- Formulario Crear/Editar (Oculto por defecto) -->
+                <div id="inviteForm" class="hidden bg-slate-900 border border-slate-800 p-6 rounded-xl mb-8">
+                    <h3 class="font-bold mb-4">Nueva Invitación</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <input id="newInviteName" placeholder="Nombre Cliente (ej: Boda Ana)" class="bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                        <input id="newInviteSlug" placeholder="URL Slug (ej: boda-ana)" class="bg-slate-800 border border-slate-700 rounded p-2 text-white font-mono">
+                    </div>
+                    <textarea id="newInviteHtml" placeholder="Pegar código HTML completo aquí..." class="w-full h-64 bg-slate-950 text-green-400 font-mono text-xs p-4 rounded border border-slate-700 mb-4"></textarea>
+                    <button onclick="saveInvitation()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Guardar Invitación</button>
+                </div>
+
+                <!-- Lista -->
+                <div id="invitesList" class="space-y-4">
+                    <!-- Se llena con JS -->
+                    <p class="text-slate-500 text-center">No hay invitaciones creadas.</p>
+                </div>
+            </div>
+
+            <!-- TAB: PLANES -->
+            <div id="tab-plans" class="max-w-4xl mx-auto hidden">
+                <h2 class="text-2xl font-bold mb-6">Editar Precios</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                        <h4 class="text-slate-400 text-sm font-bold uppercase mb-2">Básico</h4>
+                        <input id="adminPriceBasic" type="text" value="$350" class="text-3xl font-bold bg-transparent border-b border-slate-700 w-full mb-4 focus:border-brand outline-none">
+                        <button onclick="updatePrice('basic')" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded text-sm">Actualizar</button>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                        <h4 class="text-slate-400 text-sm font-bold uppercase mb-2">Pro</h4>
+                        <input id="adminPricePro" type="text" value="$600" class="text-3xl font-bold bg-transparent border-b border-slate-700 w-full mb-4 focus:border-brand outline-none">
+                        <button onclick="updatePrice('pro')" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded text-sm">Actualizar</button>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                        <h4 class="text-slate-400 text-sm font-bold uppercase mb-2">VIP</h4>
+                        <input id="adminPriceVip" type="text" value="$950" class="text-3xl font-bold bg-transparent border-b border-slate-700 w-full mb-4 focus:border-brand outline-none">
+                        <button onclick="updatePrice('vip')" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded text-sm">Actualizar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // --- ROUTER & INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Checar si hay una invitación en la URL (?invite=slug)
+            const params = new URLSearchParams(window.location.search);
+            const inviteSlug = params.get('invite');
+
+            if (inviteSlug) {
+                renderInvitation(inviteSlug);
+            } else {
+                // Cargar datos guardados
+                loadSavedPrices();
+                loadAdminInvites();
+            }
+        });
+
+        // --- ADMIN LOGIC ---
+        function openAdminLogin() {
+            document.getElementById('adminLoginModal').showModal();
+        }
+
+        function checkAdminPassword() {
+            const pass = document.getElementById('adminPassword').value;
+            if(pass === 'admin123') {
+                document.getElementById('adminLoginModal').close();
+                document.getElementById('adminPanel').classList.replace('hidden', 'flex');
+                document.body.style.overflow = 'hidden';
+            } else {
+                alert('Contraseña incorrecta');
+            }
+        }
+
+        function closeAdminDashboard() {
+            document.getElementById('adminPanel').classList.replace('flex', 'hidden');
+            document.body.style.overflow = '';
+        }
+
+        function showAdminTab(tabName) {
+            document.getElementById('tab-invites').classList.add('hidden');
+            document.getElementById('tab-plans').classList.add('hidden');
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        }
+
+        // --- INVITES MANAGEMENT ---
+        function showCreateInviteForm() {
+            document.getElementById('inviteForm').classList.toggle('hidden');
+        }
+
+        function saveInvitation() {
+            const name = document.getElementById('newInviteName').value;
+            const slug = document.getElementById('newInviteSlug').value;
+            const html = document.getElementById('newInviteHtml').value;
+
+            if(!name || !slug || !html) return alert("Completa todos los campos");
+
+            // Guardar en LocalStorage (Simulando DB)
+            const invites = JSON.parse(localStorage.getItem('fiesteala_invites') || '[]');
+            invites.push({ id: Date.now(), name, slug, html });
+            localStorage.setItem('fiesteala_invites', JSON.stringify(invites));
+
+            alert("Invitación guardada exitosamente");
+            document.getElementById('newInviteName').value = '';
+            document.getElementById('newInviteSlug').value = '';
+            document.getElementById('newInviteHtml').value = '';
+            document.getElementById('inviteForm').classList.add('hidden');
+            loadAdminInvites();
+        }
+
+        function loadAdminInvites() {
+            const invites = JSON.parse(localStorage.getItem('fiesteala_invites') || '[]');
+            const list = document.getElementById('invitesList');
+            
+            if(invites.length === 0) {
+                list.innerHTML = '<p class="text-slate-500 text-center">No hay invitaciones.</p>';
+                return;
+            }
+
+            list.innerHTML = invites.map(inv => `
+                <div class="bg-slate-800 p-4 rounded-lg flex justify-between items-center border border-slate-700">
+                    <div>
+                        <h4 class="font-bold text-white">${inv.name}</h4>
+                        <a href="?invite=${inv.slug}" target="_blank" class="text-xs text-blue-400 hover:underline">Ver: ?invite=${inv.slug}</a>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="navigator.clipboard.writeText(window.location.origin + '?invite=${inv.slug}'); alert('Link copiado')" class="p-2 bg-slate-700 rounded text-slate-300 hover:text-white" title="Copiar Link"><i class="fa-solid fa-link"></i></button>
+                        <button onclick="deleteInvite(${inv.id})" class="p-2 bg-slate-700 rounded text-red-400 hover:text-red-300" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteInvite(id) {
+            if(!confirm('¿Eliminar esta invitación?')) return;
+            let invites = JSON.parse(localStorage.getItem('fiesteala_invites') || '[]');
+            invites = invites.filter(i => i.id !== id);
+            localStorage.setItem('fiesteala_invites', JSON.stringify(invites));
+            loadAdminInvites();
+        }
+
+        // --- PUBLIC RENDERER ---
+        function renderInvitation(slug) {
+            const invites = JSON.parse(localStorage.getItem('fiesteala_invites') || '[]');
+            const invite = invites.find(i => i.slug === slug);
+
+            if (invite) {
+                // REEMPLAZAR TODO EL DOM CON EL HTML GUARDADO
+                document.open();
+                document.write(invite.html);
+                document.close();
+            } else {
+                alert('Invitación no encontrada');
+                // Limpiar URL para volver al home
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // --- PRICING LOGIC ---
+        function updatePrice(plan) {
+            const val = document.getElementById(`adminPrice${plan.charAt(0).toUpperCase() + plan.slice(1)}`).value;
+            localStorage.setItem(`price_${plan}`, val);
+            
+            // Actualizar en la vista actual
+            const displayId = plan === 'basic' ? 'plan-basic-price' : plan === 'pro' ? 'plan-pro-price' : 'plan-vip-price';
+            const displayEl = document.getElementById(displayId);
+            if(displayEl) displayEl.innerText = val;
+            
+            alert(`Precio ${plan} actualizado a ${val}`);
+        }
+
+        function loadSavedPrices() {
+            const plans = ['basic', 'pro', 'vip'];
+            plans.forEach(plan => {
+                const saved = localStorage.getItem(`price_${plan}`);
+                if(saved) {
+                    // Update Landing Page
+                    const displayId = plan === 'basic' ? 'plan-basic-price' : plan === 'pro' ? 'plan-pro-price' : 'plan-vip-price';
+                    const displayEl = document.getElementById(displayId);
+                    if(displayEl) displayEl.innerText = saved;
+
+                    // Update Admin Inputs
+                    const inputEl = document.getElementById(`adminPrice${plan.charAt(0).toUpperCase() + plan.slice(1)}`);
+                    if(inputEl) inputEl.value = saved;
+                }
+            });
+        }
+
+        // --- STANDARD SITE LOGIC ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeToggleMobile = document.getElementById('theme-toggle-mobile');
+        
+        function initTheme() {
+            if ('theme' in localStorage) {
+                if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+        initTheme();
+
+        function toggleManualTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', toggleManualTheme);
+        themeToggleMobile.addEventListener('click', toggleManualTheme);
+
+        // Mobile Menu
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+        btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+        
+        // Modal Contacto
+        function openModal(planName = null) {
+            const modal = document.getElementById('contactModal');
+            if (planName) document.getElementById('planSelect').value = planName;
+            modal.showModal();
+        }
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            alert("Solicitud enviada");
+            document.getElementById('contactModal').close();
+        }
+
+        // Scroll
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 20) {
+                navbar.classList.add('shadow-md');
+                navbar.classList.replace('glass-panel', 'bg-white/90');
+                if(document.documentElement.classList.contains('dark')) navbar.classList.replace('bg-white/90', 'bg-slate-900/90');
+            } else {
+                navbar.classList.remove('shadow-md');
+                navbar.classList.remove('bg-white/90');
+                navbar.classList.remove('bg-slate-900/90');
+                navbar.classList.add('glass-panel');
+            }
+        });
+    </script>
+</body>
+</html>
